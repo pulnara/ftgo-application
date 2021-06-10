@@ -46,11 +46,17 @@ public class KitchenService {
             .stream()
             .map(TicketLineItem::getQuantity)
             .reduce(Integer::sum);
+
     if (restaurant.isPresent() && totalOrderQuantity.isPresent() &&
             restaurant.get().getEfficiency() < totalOrderQuantity.get()) {
       logger.info("Restaurant efficiency exceeded!");
       throw new RestaurantCapacityExceededException();
     }
+
+    if (restaurant.isPresent()) {
+      restaurant.get().setEfficiency(restaurant.get().getEfficiency() - totalOrderQuantity.get());
+    }
+
     logger.info("Creating ticket...");
     ResultWithDomainEvents<Ticket, TicketDomainEvent> rwe = Ticket.create(restaurantId, ticketId, ticketDetails);
     ticketRepository.save(rwe.result);
@@ -64,6 +70,38 @@ public class KitchenService {
             .orElseThrow(() -> new TicketNotFoundException(ticketId));
     List<TicketDomainEvent> events = ticket.accept(readyBy);
     domainEventPublisher.publish(ticket, events);
+  }
+
+  @Transactional
+  public void preparing(long ticketId) {
+    Ticket ticket = ticketRepository.findById(ticketId)
+            .orElseThrow(() -> new TicketNotFoundException(ticketId));
+    List<TicketDomainEvent> events = ticket.preparing();
+    domainEventPublisher.publish(ticket, events);
+  }
+
+  @Transactional
+  public void readyForPickup(long ticketId) {
+    Ticket ticket = ticketRepository.findById(ticketId)
+            .orElseThrow(() -> new TicketNotFoundException(ticketId));
+    Optional<Restaurant> restaurant = restaurantRepository.findById(ticket.getRestaurantId());
+
+    Optional<Integer> totalOrderQuantity = ticket
+            .getLineItems()
+            .stream()
+            .map(TicketLineItem::getQuantity)
+            .reduce(Integer::sum);
+
+    if (restaurant.isPresent()) {
+      restaurant.get().setEfficiency(restaurant.get().getEfficiency() + totalOrderQuantity.get());
+    }
+
+    List<TicketDomainEvent> events = ticket.readyForPickup();
+    domainEventPublisher.publish(ticket, events);
+  }
+
+  public List<Ticket> getAllTickets() {
+    return (List<Ticket>) ticketRepository.findAll();
   }
 
   public void confirmCreateTicket(Long ticketId) {
