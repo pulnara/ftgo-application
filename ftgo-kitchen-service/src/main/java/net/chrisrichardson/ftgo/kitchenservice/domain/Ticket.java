@@ -79,6 +79,7 @@ public class Ticket {
         this.acceptTime = LocalDateTime.now();
         if (!acceptTime.isBefore(readyBy))
           throw new IllegalArgumentException(String.format("readyBy %s is not after now %s", readyBy, acceptTime));
+        this.state = TicketState.ACCEPTED;
         this.readyBy = readyBy;
         return singletonList(new TicketAcceptedEvent(readyBy));
       default:
@@ -151,6 +152,30 @@ public class Ticket {
 
   public Long getId() {
     return id;
+  }
+
+  public Long getRestaurantId() {
+    return restaurantId;
+  }
+
+  public void setRestaurantId(Long restaurantId) {
+    this.restaurantId = restaurantId;
+  }
+
+  public List<TicketLineItem> getLineItems() {
+    return lineItems;
+  }
+
+  public void setLineItems(List<TicketLineItem> lineItems) {
+    this.lineItems = lineItems;
+  }
+
+  public TicketState getState() {
+    return state;
+  }
+
+  public void setState(TicketState state) {
+    this.state = state;
   }
 
   public List<TicketDomainEvent> confirmCancel() {

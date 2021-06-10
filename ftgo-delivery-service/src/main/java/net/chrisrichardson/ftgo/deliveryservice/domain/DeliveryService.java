@@ -61,8 +61,6 @@ public class DeliveryService {
 
   }
 
-
-
   // notePickedUp
   // noteDelivered
   // noteLocation
@@ -75,13 +73,18 @@ public class DeliveryService {
     courierRepository.findOrCreateCourier(courierId).noteUnavailable();
   }
 
-  private Courier findOrCreateCourier(long courierId) {
+  public Courier findOrCreateCourier(long courierId) {
     Courier courier = Courier.create(courierId);
+    courier.noteAvailable();
     try {
       return courierRepository.save(courier);
     } catch (DuplicateKeyException e) {
-      return courierRepository.findById(courierId).get();
+      return findCourier(courierId).get();
     }
+  }
+
+  public Optional<Courier> findCourier(long courierId) {
+    return courierRepository.findById(courierId);
   }
 
   @Transactional
@@ -92,6 +95,9 @@ public class DeliveryService {
       noteUnavailable(courierId);
   }
 
+  public List<Courier> getAllCouriers() {
+    return (List<Courier>) courierRepository.findAll();
+  }
 
   // getCourierRoute()
 
